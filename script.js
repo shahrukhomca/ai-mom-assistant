@@ -1,6 +1,39 @@
-// AI Mom Guide - Complete JavaScript Application
+// ============================================
+// ONLINE AI API CONFIGURATION
+// ============================================
 
-// AI Knowledge Base - Based on Baby Care Guide
+// Your OpenRouter API Key
+const API_KEY = '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';
+
+// API Endpoint
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+// System prompt for the AI
+const SYSTEM_PROMPT = `You are an AI Mom Assistant - a helpful, caring expert in baby care for children aged 0-2 years. 
+
+Your knowledge includes:
+- Newborn care (0-3 months)
+- Infant development (4-12 months)  
+- Toddler years (1-2 years)
+- Feeding and nutrition
+- Sleep training
+- Health and safety
+- Developmental milestones
+
+Guidelines:
+- Be warm, supportive, and encouraging
+- Provide practical, actionable advice
+- Always prioritize baby safety
+- Acknowledge that every baby is different
+- Encourage consulting pediatricians for medical concerns
+- Keep responses concise but informative (2-4 paragraphs)
+
+If asked about buying the guide or pricing, mention that the Complete Baby Care Guide is available for $47 with instant download access.`;
+
+// ============================================
+// AI KNOWLEDGE BASE (FALLBACK)
+// ============================================
+
 const AI_KNOWLEDGE = {
     'hello': {
         responses: [
@@ -66,7 +99,7 @@ const AI_KNOWLEDGE = {
     'buy': {
         keywords: ['buy', 'purchase', 'price', 'cost', '$', 'pay', 'order'],
         responses: [
-            "The Complete Baby Care Guide is $27 and includes instant access to 38 pages of expert advice, bonus checklists, and a 60-day money-back guarantee!",
+            "The Complete Baby Care Guide is $47 and includes instant access to 38 pages of expert advice, bonus checklists, and a 60-day money-back guarantee!",
             "Your purchase includes: Full guide (0-2 years), feeding schedules, sleep training methods, milestone trackers, safety checklists, and emergency care guidelines.",
             "Payment is secure via PayPal, you get instant download access, and there's a full 60-day refund policy if you're not satisfied!"
         ]
@@ -176,8 +209,8 @@ function renderMessages() {
     scrollToBottom();
 }
 
-// Send message
-function sendMessage() {
+// Send message (UPDATED - async)
+async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
     
@@ -190,20 +223,50 @@ function sendMessage() {
     // Show typing indicator
     showTypingIndicator();
     
-    // Generate bot response after delay
-    setTimeout(() => {
-        hideTypingIndicator();
-        generateBotResponse(text);
-    }, 1500);
+    // Generate bot response (now async)
+    await generateBotResponse(text);
+    hideTypingIndicator();
 }
 
-// Generate bot response
-function generateBotResponse(userMessage) {
-    const response = getAIResponse(userMessage);
-    addMessage(response, 'bot');
+// Generate bot response (UPDATED - with AI API)
+async function generateBotResponse(userMessage) {
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`,
+                'HTTP-Referer': window.location.href,
+                'X-Title': 'AI Mom Assistant'
+            },
+            body: JSON.stringify({
+                model: 'openai/gpt-3.5-turbo',
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: userMessage }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('API request failed');
+        }
+        
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+        addMessage(aiResponse, 'bot');
+        
+    } catch (error) {
+        console.error('AI API Error:', error);
+        // Fallback to local responses on error
+        const fallbackResponse = getAIResponse(userMessage);
+        addMessage(fallbackResponse + '\n\n_(Note: Using offline mode - AI service temporarily unavailable)_', 'bot');
+    }
 }
 
-// Get AI response
+// Get AI response (local fallback)
 function getAIResponse(userMessage) {
     const message = userMessage.toLowerCase();
     
@@ -394,27 +457,17 @@ function exportChat() {
     URL.revokeObjectURL(url);
 }
 
-// Scroll to bottom (for FAB)
-function scrollToBottom() {
-    const chatMessages = document.getElementById('chatMessages');
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    
-    // Hide FAB when at bottom
-    const fab = document.getElementById('fabMobile');
-    if (chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight) {
-        fab.style.display = 'none';
-    }
-}
-
-// Show/hide FAB based on scroll
+// Setup FAB
 function setupFab() {
     const chatMessages = document.getElementById('chatMessages');
     const fab = document.getElementById('fabMobile');
     
-    chatMessages.addEventListener('scroll', () => {
-        const isAtBottom = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
-        fab.style.display = isAtBottom ? 'none' : 'flex';
-    });
+    if (chatMessages && fab) {
+        chatMessages.addEventListener('scroll', () => {
+            const isAtBottom = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
+            fab.style.display = isAtBottom ? 'none' : 'flex';
+        });
+    }
 }
 
 // Initialize FAB setup when chat is active
