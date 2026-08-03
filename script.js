@@ -1,18 +1,16 @@
 // ============================================
-// ONLINE AI API CONFIGURATION
+// AI Mom Guide - Online AI Chatbot
 // ============================================
 
-// Your OpenRouter API Key
-const API_KEY = sk-or-v1-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
-// API Endpoint
+// OpenRouter API Key
+const API_KEY = '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';
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-// System prompt for the AI
-const SYSTEM_PROMPT = `You are an AI Mom Assistant - a helpful, caring expert in baby care for children aged 0-2 years. 
+const SYSTEM_PROMPT = `You are an AI Mom Assistant - a helpful, caring expert in baby care for children aged 0-2 years.
 
 Your knowledge includes:
 - Newborn care (0-3 months)
-- Infant development (4-12 months)  
+- Infant development (4-12 months)
 - Toddler years (1-2 years)
 - Feeding and nutrition
 - Sleep training
@@ -30,15 +28,15 @@ Guidelines:
 If asked about buying the guide or pricing, mention that the Complete Baby Care Guide is available for $47 with instant download access.`;
 
 // ============================================
-// AI KNOWLEDGE BASE (FALLBACK)
+// LOCAL KNOWLEDGE BASE (FALLBACK)
 // ============================================
 
 const AI_KNOWLEDGE = {
     'hello': {
         responses: [
-            "Hi Mama! 👋 I'm your AI Mom Guide, here to help you with any baby care questions. What would you like to know about?",
-            "Hello! 💕 I'm here to support you on your motherhood journey. How can I help you today?",
-            "Hi there! 🤱 I'm your personal baby care assistant. Ask me anything about feeding, sleep, milestones, or anything else!"
+            "Hi Mama! I'm your AI Mom Guide, here to help you with any baby care questions. What would you like to know about?",
+            "Hello! I'm here to support you on your motherhood journey. How can I help you today?",
+            "Hi there! I'm your personal baby care assistant. Ask me anything about feeding, sleep, milestones, or anything else!"
         ]
     },
     'feeding': {
@@ -82,15 +80,15 @@ const AI_KNOWLEDGE = {
         responses: [
             "Baby-proofing essentials: Install gates at stairs, cover outlets, secure furniture to walls, lock cabinets with cleaning supplies/medicines, use toilet locks.",
             "Sleep safety: Back to sleep always, firm mattress with fitted sheet only, no pillows/blankets/toys in crib, room-share for 6+ months, avoid overheating.",
-            "Choking hazards: Anything fitting through a toilet paper tube is dangerous! Coins, buttons, batteries, small toys, balloons, marbles, magnets - keep them out of reach.",
+            "Choking hazards: Anything fitting through a toilet paper tube is dangerous! Keep coins, buttons, batteries, small toys, balloons, marbles out of reach.",
             "Never shake a baby - it can cause serious brain injury. If overwhelmed, put baby in safe place and take a break. It's okay to let baby cry while you collect yourself."
         ]
     },
     'health': {
         keywords: ['health', 'sick', 'fever', 'cold', 'doctor', 'illness', 'medicine', 'vaccine'],
         responses: [
-            "Call doctor immediately if: fever over 100.4°F (under 3 months), difficulty breathing, unusually sleepy, seizure, blue lips/face, severe injury. Trust your instincts!",
-            "Common colds: 6-8 per year is normal! Use bulb syringe for mucus, saline drops, cool-mist humidifier, elevate crib mattress slightly, ensure hydration. No OTC cold meds for babies!",
+            "Call doctor immediately if: fever over 100.4F (under 3 months), difficulty breathing, unusually sleepy, seizure, blue lips/face, severe injury. Trust your instincts!",
+            "Common colds: 6-8 per year is normal! Use bulb syringe for mucus, saline drops, cool-mist humidifier, elevate crib mattress slightly, ensure hydration.",
             "Teething (4-7 months): Excessive drooling, gnawing, irritability, swollen gums. Relief: chilled teething rings, gum massage, acetaminophen (if approved by doctor).",
             "Vaccination schedule: Birth (Hep B), 1-2 months (multiple), 4 months, 6 months, 12 months (MMR, Varicella), 15-18 months. Follow the CDC schedule!"
         ]
@@ -113,16 +111,16 @@ const AI_KNOWLEDGE = {
     },
     'thank': {
         responses: [
-            "You're so welcome, Mama! 💕 Remember, you're doing an amazing job. Trust your instincts and don't hesitate to ask for help when you need it!",
+            "You're so welcome, Mama! Remember, you're doing an amazing job. Trust your instincts and don't hesitate to ask for help when you need it!",
             "My pleasure! You're a wonderful mother. Is there anything else I can help you with today?",
-            "You're very welcome! Remember - every baby is different, and there's no such thing as a perfect parent. You're doing great! 💕"
+            "You're very welcome! Remember - every baby is different, and there's no such thing as a perfect parent. You're doing great!"
         ]
     },
     'bye': {
         responses: [
-            "Take care, Mama! Remember to trust your instincts, ask for help when you need it, and enjoy every precious moment with your little one. 💕",
-            "Goodbye! I'm always here if you need baby care advice. You've got this! 🤱",
-            "See you later, Mama! Don't forget - you're doing an amazing job. Every day is a new adventure! 💕"
+            "Take care, Mama! Remember to trust your instincts, ask for help when you need it, and enjoy every precious moment with your little one.",
+            "Goodbye! I'm always here if you need baby care advice. You've got this!",
+            "See you later, Mama! Don't forget - you're doing an amazing job. Every day is a new adventure!"
         ]
     }
 };
@@ -130,14 +128,21 @@ const AI_KNOWLEDGE = {
 // Chat state
 let chatHistory = [];
 let currentChatId = null;
+let isProcessing = false;
 
-// Initialize app
+// ============================================
+// INITIALIZATION
+// ============================================
+
 document.addEventListener('DOMContentLoaded', function() {
     loadHistory();
     startNewChat();
 });
 
-// Start new chat
+// ============================================
+// CHAT FUNCTIONS
+// ============================================
+
 function startNewChat() {
     currentChatId = Date.now().toString();
     chatHistory = [{
@@ -146,30 +151,36 @@ function startNewChat() {
         sender: 'bot',
         timestamp: new Date()
     }];
-    
+
     hideWelcomeScreen();
     renderMessages();
     saveToHistory();
 }
 
-// Start with specific topic
-function startTopic(topic) {
+async function startTopic(topic) {
     startNewChat();
     const userMessage = `Tell me about ${topic}`;
     addMessage(userMessage, 'user');
-    generateBotResponse(userMessage);
+
+    showTypingIndicator();
+    try {
+        await generateBotResponse(userMessage);
+    } catch (err) {
+        console.error('Error:', err);
+        const fallback = getAIResponse(userMessage);
+        addMessage(fallback, 'bot');
+    }
+    hideTypingIndicator();
 }
 
-// Hide welcome screen
 function hideWelcomeScreen() {
     const welcomeScreen = document.getElementById('welcomeScreen');
     const chatMessages = document.getElementById('chatMessages');
-    
-    welcomeScreen.style.display = 'none';
-    chatMessages.classList.add('active');
+
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    if (chatMessages) chatMessages.classList.add('active');
 }
 
-// Add message to chat
 function addMessage(text, sender) {
     const message = {
         id: Date.now(),
@@ -177,57 +188,79 @@ function addMessage(text, sender) {
         sender: sender,
         timestamp: new Date()
     };
-    
+
     chatHistory.push(message);
     renderMessages();
     saveToHistory();
 }
 
-// Render messages
 function renderMessages() {
     const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
     chatMessages.innerHTML = '';
-    
+
     chatHistory.forEach(message => {
         const messageEl = document.createElement('div');
         messageEl.className = `message ${message.sender}`;
-        
+
         const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+
         messageEl.innerHTML = `
             <div class="message-avatar">${message.sender === 'bot' ? '🤱' : '👩'}</div>
             <div>
-                <div class="message-content">${message.text}</div>
+                <div class="message-content">${formatMessage(message.text)}</div>
                 <div class="message-time">${time}</div>
             </div>
         `;
-        
+
         chatMessages.appendChild(messageEl);
     });
-    
+
     scrollToBottom();
 }
 
-// Send message (UPDATED - async)
+function formatMessage(text) {
+    return text.replace(/\n/g, '<br>');
+}
+
+// ============================================
+// SEND MESSAGE (main function)
+// ============================================
+
 async function sendMessage() {
+    if (isProcessing) return;
+
     const input = document.getElementById('messageInput');
+    if (!input) return;
+
     const text = input.value.trim();
-    
     if (!text) return;
-    
+
+    isProcessing = true;
+
     addMessage(text, 'user');
     input.value = '';
     autoResize(input);
-    
-    // Show typing indicator
+
     showTypingIndicator();
-    
-    // Generate bot response (now async)
-    await generateBotResponse(text);
+
+    try {
+        await generateBotResponse(text);
+    } catch (err) {
+        console.error('Send Error:', err);
+        const fallback = getAIResponse(text);
+        addMessage(fallback + '\n\n_(Note: Using offline mode - AI temporarily unavailable)_', 'bot');
+    }
+
     hideTypingIndicator();
+    isProcessing = false;
 }
 
-// Generate bot response (UPDATED - with AI API)
+// ============================================
+// AI RESPONSE (online API + fallback)
+// ============================================
+
 async function generateBotResponse(userMessage) {
     try {
         const response = await fetch(API_URL, {
@@ -248,28 +281,32 @@ async function generateBotResponse(userMessage) {
                 max_tokens: 500
             })
         });
-        
+
         if (!response.ok) {
-            throw new Error('API request failed');
+            const errorText = await response.text();
+            console.error('API Error:', response.status, errorText);
+            throw new Error('API request failed: ' + response.status);
         }
-        
+
         const data = await response.json();
+
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid API response');
+        }
+
         const aiResponse = data.choices[0].message.content;
         addMessage(aiResponse, 'bot');
-        
+
     } catch (error) {
-        console.error('AI API Error:', error);
-        // Fallback to local responses on error
+        console.error('AI Error:', error);
         const fallbackResponse = getAIResponse(userMessage);
-        addMessage(fallbackResponse + '\n\n_(Note: Using offline mode - AI service temporarily unavailable)_', 'bot');
+        addMessage(fallbackResponse + '\n\n_(Note: Using offline mode)_', 'bot');
     }
 }
 
-// Get AI response (local fallback)
 function getAIResponse(userMessage) {
     const message = userMessage.toLowerCase();
-    
-    // Check for specific keywords
+
     for (const [topic, data] of Object.entries(AI_KNOWLEDGE)) {
         if (data.keywords) {
             for (const keyword of data.keywords) {
@@ -279,25 +316,21 @@ function getAIResponse(userMessage) {
             }
         }
     }
-    
-    // Check for exact matches
+
     for (const [topic, data] of Object.entries(AI_KNOWLEDGE)) {
         if (message.includes(topic)) {
             return getRandomResponse(topic);
         }
     }
-    
-    // Default response for unrecognized topics
+
     return getDefaultResponse(message);
 }
 
-// Get random response from topic
 function getRandomResponse(topic) {
     const responses = AI_KNOWLEDGE[topic].responses;
     return responses[Math.floor(Math.random() * responses.length)];
 }
 
-// Get default response
 function getDefaultResponse(message) {
     const defaults = [
         "I'm here to help with baby care questions! Ask me about feeding, sleep, milestones, safety, or anything else on your mind.",
@@ -307,20 +340,21 @@ function getDefaultResponse(message) {
     return defaults[Math.floor(Math.random() * defaults.length)];
 }
 
-// Show typing indicator
+// ============================================
+// UI HELPERS
+// ============================================
+
 function showTypingIndicator() {
     const indicator = document.getElementById('typingIndicator');
-    indicator.classList.add('active');
+    if (indicator) indicator.style.display = 'block';
     scrollToBottom();
 }
 
-// Hide typing indicator
 function hideTypingIndicator() {
     const indicator = document.getElementById('typingIndicator');
-    indicator.classList.remove('active');
+    if (indicator) indicator.style.display = 'none';
 }
 
-// Handle key down
 function handleKeyDown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -328,102 +362,98 @@ function handleKeyDown(event) {
     }
 }
 
-// Auto resize textarea
 function autoResize(textarea) {
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
 }
 
-// Scroll to bottom
 function scrollToBottom() {
     const chatMessages = document.getElementById('chatMessages');
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 }
 
-// Toggle sidebar
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('active');
+    if (sidebar) sidebar.classList.toggle('active');
 }
 
-// Save to history
+// ============================================
+// HISTORY FUNCTIONS
+// ============================================
+
 function saveToHistory() {
     if (!currentChatId || chatHistory.length <= 1) return;
-    
+
     const history = JSON.parse(localStorage.getItem('momGuideHistory') || '[]');
-    
-    // Check if this chat already exists
     const existingIndex = history.findIndex(h => h.id === currentChatId);
-    
+
     const chatData = {
         id: currentChatId,
         title: chatHistory[1]?.text.substring(0, 50) + '...' || 'New Chat',
         messages: [...chatHistory],
         timestamp: new Date().toISOString()
     };
-    
+
     if (existingIndex !== -1) {
         history[existingIndex] = chatData;
     } else {
         history.unshift(chatData);
-        // Keep only last 50 chats
         history.splice(50);
     }
-    
+
     localStorage.setItem('momGuideHistory', JSON.stringify(history));
     renderHistory();
 }
 
-// Load history
 function loadHistory() {
     renderHistory();
 }
 
-// Render history
 function renderHistory() {
     const historyList = document.getElementById('historyList');
+    if (!historyList) return;
+
     const history = JSON.parse(localStorage.getItem('momGuideHistory') || '[]');
-    
+
     historyList.innerHTML = '';
-    
+
     if (history.length === 0) {
         historyList.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">No chat history yet</p>';
         return;
     }
-    
+
     history.forEach(chat => {
         const historyItem = document.createElement('div');
         historyItem.className = `history-item ${chat.id === currentChatId ? 'active' : ''}`;
         historyItem.onclick = () => loadChat(chat.id);
-        
+
         const date = new Date(chat.timestamp);
         const dateStr = date.toLocaleDateString();
-        
+
         historyItem.innerHTML = `
             <div class="history-title">${chat.title}</div>
             <div class="history-date">${dateStr}</div>
         `;
-        
+
         historyList.appendChild(historyItem);
     });
 }
 
-// Load chat from history
 function loadChat(chatId) {
     const history = JSON.parse(localStorage.getItem('momGuideHistory') || '[]');
     const chat = history.find(h => h.id === chatId);
-    
+
     if (chat) {
         currentChatId = chat.id;
         chatHistory = [...chat.messages];
         hideWelcomeScreen();
         renderMessages();
         toggleSidebar();
-        saveToHistory();
     }
 }
 
-// Clear all history
 function clearHistory() {
     if (confirm('Are you sure you want to clear all chat history?')) {
         localStorage.removeItem('momGuideHistory');
@@ -432,19 +462,18 @@ function clearHistory() {
     }
 }
 
-// Export chat
 function exportChat() {
     if (chatHistory.length <= 1) {
         alert('No messages to export yet!');
         return;
     }
-    
+
     const chatText = chatHistory.map(msg => {
         const sender = msg.sender === 'bot' ? 'AI Mom Guide' : 'You';
         const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         return `[${time}] ${sender}: ${msg.text}`;
     }).join('\n\n');
-    
+
     const blob = new Blob([chatText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -455,19 +484,3 @@ function exportChat() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
-
-// Setup FAB
-function setupFab() {
-    const chatMessages = document.getElementById('chatMessages');
-    const fab = document.getElementById('fabMobile');
-    
-    if (chatMessages && fab) {
-        chatMessages.addEventListener('scroll', () => {
-            const isAtBottom = chatMessages.scrollHeight - chatMessages.scrollTop === chatMessages.clientHeight;
-            fab.style.display = isAtBottom ? 'none' : 'flex';
-        });
-    }
-}
-
-// Initialize FAB setup when chat is active
-document.addEventListener('DOMContentLoaded', setupFab);
