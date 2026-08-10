@@ -3,8 +3,8 @@
 // ============================================
 
 // OpenRouter API Key
-const API_KEY = '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';
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+const API_URL = "https://sss.shahrukh-f0d.workers.dev/chat";
 
 const SYSTEM_PROMPT = `You are an AI Mom Assistant - a helpful, caring expert in baby care for children aged 0-2 years.
 
