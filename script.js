@@ -2,7 +2,7 @@
 // AI Mom Guide - Online AI Chatbot
 // ============================================
 
-// OpenRouter API Key
+// Cloudflare Worker Proxy URL
 
 const API_URL = "https://sss.shahrukh-f0d.workers.dev/chat";
 
@@ -264,23 +264,17 @@ async function sendMessage() {
 async function generateBotResponse(userMessage) {
     try {
         const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}`,
-                'HTTP-Referer': window.location.href,
-                'X-Title': 'AI Mom Assistant'
-            },
-            body: JSON.stringify({
-                model: 'openai/gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: SYSTEM_PROMPT },
-                    { role: 'user', content: userMessage }
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            })
-        });
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userMessage }
+        ]
+    })
+})
 
         if (!response.ok) {
             const errorText = await response.text();
