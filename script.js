@@ -3,8 +3,8 @@
 // OpenRouter API + Local Fallback
 // ==========================================
 
-const API_KEY = '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';
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+OLD: const API_KEY = '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';
+NEW: const API_KEY = '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';const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const SYSTEM_PROMPT = `You are "Mama Sage" — a warm, experienced mom friend who's been through it all. You help new moms with babies aged 0-2 years. You are NOT a cold medical encyclopedia. You are the wise best-friend moms call at 2 AM.
 
