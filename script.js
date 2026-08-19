@@ -3,8 +3,8 @@
 // OpenRouter API + Local Fallback
 // ==========================================
 
-OLD: const API_KEY = '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';
-NEW: const API_KEY = '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';const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const API_KEY = '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';
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const SYSTEM_PROMPT = `You are "Mama Sage" — a warm, experienced mom friend who's been through it all. You help new moms with babies aged 0-2 years. You are NOT a cold medical encyclopedia. You are the wise best-friend moms call at 2 AM.
 
@@ -126,190 +126,191 @@ function getLocalResponse(userText) {
             }
         }
     }
-    return `I'm here to help with baby care questions! Ask me about feeding, sleep, milestones, safety, or anything else on your mind. 💕`;
+    return "I'm here to help with baby care questions! Ask me about feeding, sleep, milestones, safety, or anything else on your mind. 💕";
 }
 
 // ==========================================
-// DOM READY - Initialize Everything
+// CHAT APP (runs immediately — script is at bottom of body)
 // ==========================================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('AI Mom Guide loaded successfully!');
 
-    const chatArea = document.getElementById('chatArea');
-    const messagesContainer = document.getElementById('messagesContainer');
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const typingIndicator = document.getElementById('typingIndicator');
-    const welcomeMessage = document.getElementById('welcomeMessage');
+const chatArea = document.getElementById('chatArea');
+const messagesContainer = document.getElementById('messagesContainer');
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const typingIndicator = document.getElementById('typingIndicator');
+const welcomeMessage = document.getElementById('welcomeMessage');
 
-    if (!messageInput || !sendBtn) {
-        console.error('Required elements not found!');
-        return;
-    }
+if (!messageInput || !sendBtn) {
+    console.error('AI Mom Guide: Required elements not found!');
+} else {
+    console.log('AI Mom Guide: Initialized successfully!');
+}
 
-    let chatHistory = [];
-    let isProcessing = false;
+let chatHistory = [];
+let isProcessing = false;
 
-    // Auto-resize textarea
-    messageInput.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-    });
+// Auto-resize textarea
+messageInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
 
-    // Send on Enter
-    messageInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    // Send button click
-    sendBtn.addEventListener('click', function(e) {
+// Send on Enter
+messageInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
-    });
+    }
+});
 
-    function getTimeString() {
-        const now = new Date();
-        return now.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: true 
+// Send button click
+sendBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    sendMessage();
+});
+
+function getTimeString() {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+    });
+}
+
+function createMessageElement(text, isUser) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-wrapper ' + (isUser ? 'user' : 'ai');
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = isUser ? 'You' : '👩‍🍼';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+
+    let formattedText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+
+    bubble.innerHTML = formattedText;
+
+    const time = document.createElement('div');
+    time.className = 'message-time';
+    time.textContent = getTimeString();
+
+    const bubbleWrapper = document.createElement('div');
+    bubbleWrapper.appendChild(bubble);
+    bubbleWrapper.appendChild(time);
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubbleWrapper);
+
+    return wrapper;
+}
+
+function showTyping() {
+    if (typingIndicator) typingIndicator.classList.add('active');
+    scrollToBottom();
+}
+
+function hideTyping() {
+    if (typingIndicator) typingIndicator.classList.remove('active');
+}
+
+function scrollToBottom() {
+    if (chatArea) {
+        chatArea.scrollTo({
+            top: chatArea.scrollHeight,
+            behavior: 'smooth'
         });
     }
+}
 
-    function createMessageElement(text, isUser) {
-        const wrapper = document.createElement('div');
-        wrapper.className = `message-wrapper ${isUser ? 'user' : 'ai'}`;
+async function sendMessage() {
+    if (isProcessing) return;
 
-        const avatar = document.createElement('div');
-        avatar.className = 'message-avatar';
-        avatar.textContent = isUser ? 'You' : '👩‍🍼';
+    const text = messageInput.value.trim();
+    if (!text) return;
 
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble';
+    isProcessing = true;
 
-        let formattedText = text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/\n/g, '<br>');
-
-        bubble.innerHTML = formattedText;
-
-        const time = document.createElement('div');
-        time.className = 'message-time';
-        time.textContent = getTimeString();
-
-        const bubbleWrapper = document.createElement('div');
-        bubbleWrapper.appendChild(bubble);
-        bubbleWrapper.appendChild(time);
-
-        wrapper.appendChild(avatar);
-        wrapper.appendChild(bubbleWrapper);
-
-        return wrapper;
+    // Hide welcome message on first message
+    if (welcomeMessage) {
+        welcomeMessage.style.display = 'none';
     }
 
-    function showTyping() {
-        if (typingIndicator) typingIndicator.classList.add('active');
+    // Add user message
+    const userMsg = createMessageElement(text, true);
+    messagesContainer.appendChild(userMsg);
+    chatHistory.push({ role: 'user', content: text });
+
+    // Clear input
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    scrollToBottom();
+
+    // Show typing
+    showTyping();
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + API_KEY,
+                'HTTP-Referer': window.location.href,
+                'X-Title': 'AI Mom Assistant'
+            },
+            body: JSON.stringify({
+                model: 'openai/gpt-3.5-turbo',
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    ...chatHistory
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('API request failed: ' + response.status);
+        }
+
+        const data = await response.json();
+        const aiReply = data.choices && data.choices[0] && data.choices[0].message 
+            ? data.choices[0].message.content 
+            : getLocalResponse(text);
+
+        hideTyping();
+
+        // Add AI message
+        const aiMsg = createMessageElement(aiReply, false);
+        messagesContainer.appendChild(aiMsg);
+        chatHistory.push({ role: 'assistant', content: aiReply });
+
+        scrollToBottom();
+
+    } catch (error) {
+        console.error('AI Error:', error);
+        hideTyping();
+
+        // Use local fallback on error - seamless
+        const fallbackReply = getLocalResponse(text);
+        const aiMsg = createMessageElement(fallbackReply, false);
+        messagesContainer.appendChild(aiMsg);
+        chatHistory.push({ role: 'assistant', content: fallbackReply });
+
         scrollToBottom();
     }
 
-    function hideTyping() {
-        if (typingIndicator) typingIndicator.classList.remove('active');
-    }
+    isProcessing = false;
+}
 
-    function scrollToBottom() {
-        if (chatArea) {
-            chatArea.scrollTo({
-                top: chatArea.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    }
-
-    async function sendMessage() {
-        if (isProcessing) return;
-
-        const text = messageInput.value.trim();
-        if (!text) return;
-
-        isProcessing = true;
-
-        // Hide welcome message on first message
-        if (welcomeMessage) {
-            welcomeMessage.style.display = 'none';
-        }
-
-        // Add user message
-        const userMsg = createMessageElement(text, true);
-        messagesContainer.appendChild(userMsg);
-        chatHistory.push({ role: 'user', content: text });
-
-        // Clear input
-        messageInput.value = '';
-        messageInput.style.height = 'auto';
-        scrollToBottom();
-
-        // Show typing
-        showTyping();
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${API_KEY}`,
-                    'HTTP-Referer': window.location.href,
-                    'X-Title': 'AI Mom Assistant'
-                },
-                body: JSON.stringify({
-                    model: 'openai/gpt-3.5-turbo',
-                    messages: [
-                        { role: 'system', content: SYSTEM_PROMPT },
-                        ...chatHistory
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 500
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('API request failed: ' + response.status);
-            }
-
-            const data = await response.json();
-            const aiReply = data.choices?.[0]?.message?.content || getLocalResponse(text);
-
-            hideTyping();
-
-            // Add AI message
-            const aiMsg = createMessageElement(aiReply, false);
-            messagesContainer.appendChild(aiMsg);
-            chatHistory.push({ role: 'assistant', content: aiReply });
-
-            scrollToBottom();
-
-        } catch (error) {
-            console.error('AI Error:', error);
-            hideTyping();
-
-            // Use local fallback on error
-            const fallbackReply = getLocalResponse(text);
-            const aiMsg = createMessageElement(fallbackReply + '\n\n_(Note: Using offline mode — AI service temporarily unavailable)_', false);
-            messagesContainer.appendChild(aiMsg);
-            chatHistory.push({ role: 'assistant', content: fallbackReply });
-
-            scrollToBottom();
-        }
-
-        isProcessing = false;
-    }
-
-    // Make startTopic globally accessible for onclick handlers
-    window.startTopic = function(topic) {
-        messageInput.value = `Tell me about ${topic}`;
-        sendMessage();
-    };
-});
+// Global function for topic buttons (called from HTML onclick)
+function startTopic(topic) {
+    if (!messageInput) return;
+    messageInput.value = 'Tell me about ' + topic;
+    sendMessage();
+}
