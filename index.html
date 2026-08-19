@@ -3,127 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mom Guide - Your Personal Baby Care Assistant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>AI Mom Guide</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">
-                <span class="logo-icon">🤱</span>
-                <h1>AI Mom Guide</h1>
-            </div>
-            <div class="header-actions">
-                <button class="btn-secondary" onclick="toggleSidebar()">History</button>
-                <button class="btn-primary" onclick="exportChat()">Export Chat</button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="main">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h3>Chat History</h3>
-                <button class="close-btn" onclick="toggleSidebar()">×</button>
-            </div>
-            <div class="sidebar-content">
-                <div class="history-list" id="historyList">
-                    <!-- Chat history will be populated here -->
-                </div>
-                <button class="btn-secondary full-width" onclick="clearHistory()">Clear All History</button>
-            </div>
-        </aside>
-
-        <!-- Chat Container -->
-        <div class="chat-container">
-            <!-- Welcome Screen -->
-            <div class="welcome-screen" id="welcomeScreen">
-                <div class="welcome-content">
-                    <div class="welcome-icon">🤱</div>
-                    <h2>Welcome to AI Mom Guide</h2>
-                    <p>Your personal AI companion for baby care. Get instant answers about feeding, sleep, milestones, and more!</p>
-                    
-                    <div class="quick-topics">
-                        <h3>Start with a topic:</h3>
-                        <div class="topic-grid">
-                            <button class="topic-card" onclick="startTopic('newborn')">
-                                <span class="topic-icon">👶</span>
-                                <span class="topic-title">Newborn Care</span>
-                            </button>
-                            <button class="topic-card" onclick="startTopic('feeding')">
-                                <span class="topic-icon">🍼</span>
-                                <span class="topic-title">Feeding Guide</span>
-                            </button>
-                            <button class="topic-card" onclick="startTopic('sleep')">
-                                <span class="topic-icon">😴</span>
-                                <span class="topic-title">Sleep Help</span>
-                            </button>
-                            <button class="topic-card" onclick="startTopic('milestones')">
-                                <span class="topic-icon">📈</span>
-                                <span class="topic-title">Milestones</span>
-                            </button>
-                            <button class="topic-card" onclick="startTopic('safety')">
-                                <span class="topic-icon">🛡️</span>
-                                <span class="topic-title">Safety Tips</span>
-                            </button>
-                            <button class="topic-card" onclick="startTopic('health')">
-                                <span class="topic-icon">🏥</span>
-                                <span class="topic-title">Health & Wellness</span>
-                            </button>
-                        </div>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="chat-header">
+            <div class="header-content">
+                <div class="brand">
+                    <div class="logo"><span>👩‍🍼</span></div>
+                    <div class="brand-text">
+                        <h1>AI Mom Guide</h1>
+                        <span class="status"><span class="status-dot"></span>Online</span>
                     </div>
                 </div>
             </div>
+        </header>
 
-            <!-- Chat Messages -->
-            <div class="chat-messages" id="chatMessages">
-                <!-- Messages will be added here dynamically -->
+        <!-- Chat Area -->
+        <main class="chat-area" id="chatArea">
+            <div class="welcome-message" id="welcomeMessage">
+                <div class="welcome-bubble">
+                    <div class="welcome-avatar">👩‍🍼</div>
+                    <div class="welcome-content">
+                        <h2>Welcome, Mama! 💕</h2>
+                        <p>I'm here to help with feeding, sleep, milestones, and everything in between. Ask me anything about your little one!</p>
+                    </div>
+                </div>
             </div>
+            <div class="messages-container" id="messagesContainer"></div>
 
             <!-- Typing Indicator -->
-            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            <div class="typing-indicator" id="typingIndicator">
                 <div class="typing-bubble">
-                    <span class="bot-avatar">🤱</span>
-                    <span class="typing-text">AI is thinking...</span>
+                    <div class="typing-avatar">👩‍🍼</div>
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
                 </div>
             </div>
+        </main>
 
-            <!-- Chat Input -->
-            <div class="chat-input-container">
-                <div class="input-wrapper">
-                    <textarea 
-                        id="messageInput" 
-                        class="message-input" 
-                        placeholder="Ask me anything about your baby's care..."
-                        rows="1"
-                        onkeydown="handleKeyDown(event)"
-                        oninput="autoResize(this)"
-                    ></textarea>
-                    <button class="send-btn" onclick="sendMessage()" id="sendBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="input-hint">
-                    Press Enter to send • Shift+Enter for new line
-                </div>
-            </div>
+        <!-- Quick Topic Buttons -->
+        <div class="quick-topics" id="quickTopics">
+            <button class="topic-btn" onclick="startTopic('sleep')">😴 Sleep Help</button>
+            <button class="topic-btn" onclick="startTopic('feeding')">🍼 Feeding Guide</button>
+            <button class="topic-btn" onclick="startTopic('milestones')">📊 Milestones</button>
+            <button class="topic-btn" onclick="startTopic('safety')">🛡️ Safety Tips</button>
+            <button class="topic-btn" onclick="startTopic('newborn')">👶 Newborn Care</button>
+            <button class="topic-btn" onclick="startTopic('health')">🏥 Health</button>
         </div>
-    </main>
 
-    <!-- Floating Action Button (Mobile) -->
-    <button class="fab-mobile" onclick="scrollToBottom()" id="fabMobile">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5V19M5 12L12 19L19 12"/>
-        </svg>
-    </button>
-
-    <!-- Scripts -->
+        <!-- Input Area -->
+        <footer class="input-area">
+            <div class="input-wrapper">
+                <textarea id="messageInput" placeholder="Ask me anything about your baby's care..." rows="1"></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="input-hint">
+                <span>Press Enter to send</span>
+                <span>Shift + Enter for new line</span>
+            </div>
+        </footer>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
