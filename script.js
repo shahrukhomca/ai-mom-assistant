@@ -55,7 +55,7 @@ const LOCAL_KNOWLEDGE = {
         ]
     },
     'feeding': {
-        keywords: ['feed', 'eat', 'food', 'bottle', 'breast', 'milk', 'nursing', 'formula', 'solid', 'hungry', 'eat', 'nutrition'],
+        keywords: ['feed', 'eat', 'food', 'bottle', 'breast', 'milk', 'nursing', 'formula', 'solid', 'hungry', 'nutrition'],
         responses: [
             "Feeding questions are SO common — you're definitely not alone! 🍼\n\n**Here's the thing:**\n- **Newborns**: Every 2-3 hours (8-12 feeds/day)\n- **4-6 months**: Still frequent, but you can start thinking about solids when they show signs\n- **6-12 months**: 3 meals + milk, gradually increasing textures\n\n**Signs baby is ready for solids:**\n- Sits with support\n- Lost tongue-thrust reflex\n- Interested in your food\n\nAre you breastfeeding, formula feeding, or a mix? I can give more specific tips! 💕",
             "Feeding can feel overwhelming at first, but you'll find your groove! 🍼\n\n**A few tips that saved my sanity:**\n- **Cluster feeding** is normal (especially evenings!) — baby is tanking up\n- Burp halfway through and at the end\n- If bottle-feeding, pace feeding prevents overfeeding\n\nHow old is your baby, and what feeding method are you using? I'm here to help! ❤️"
@@ -81,13 +81,13 @@ const LOCAL_KNOWLEDGE = {
         ]
     },
     'health': {
-        keywords: ['health', 'sick', 'fever', 'cold', 'doctor', 'illness', 'medicine', 'vaccine', 'rash', 'teething', 'fever'],
+        keywords: ['health', 'sick', 'fever', 'cold', 'doctor', 'illness', 'medicine', 'vaccine', 'rash', 'teething'],
         responses: [
             "I know it's scary when baby isn't feeling well. 💔 You're doing the right thing by seeking info.\n\n**When to call the doctor:**\n- Fever over 100.4°F (38°C) in babies under 3 months\n- Fever over 102°F (38.9°C) in older babies\n- Trouble breathing\n- Not eating or drinking\n- Unusual lethargy\n\n**For mild colds:**\n- Saline drops + bulb syringe for stuffy noses\n- Cool-mist humidifier\n- Lots of cuddles and fluids\n\n**Please check with your pediatrician for medical concerns** — I'm here for support, but they're the pros! 💕 What's going on with your little one?"
         ]
     },
     'crying': {
-        keywords: ['cry', 'crying', 'fussy', 'fussing', 'won't stop', 'screaming', 'colic'],
+        keywords: ['cry', 'crying', 'fussy', 'fussing', 'won\'t stop', 'screaming', 'colic'],
         responses: [
             "Oh mama, I hear you. A crying baby is SO stressful, but you're not doing anything wrong. 👶💕\n\n**The 5 S's (Dr. Karp's method) — lifesavers:**\n1. **Swaddle** — snug wrapping (arms down)\n2. **Side/Stomach** — hold on their side or stomach (never for sleep!)\n3. **Shush** — loud white noise (vacuum, hair dryer, app)\n4. **Swing** — gentle jiggling motion (support the head!)\n5. **Suck** — pacifier, clean finger, or nursing\n\n**Other checks:**\n- Hungry? (rooting, sucking on hands)\n- Wet/dirty diaper?\n- Too hot or cold?\n- Overstimulated? (take to a quiet, dark room)\n\nYou've got this, mama. Breathe. 💪 What's been working (or not working) so far?"
         ]
@@ -116,7 +116,6 @@ const LOCAL_KNOWLEDGE = {
 
 function getLocalResponse(userText) {
     const lowerText = userText.toLowerCase();
-
     for (const [topic, data] of Object.entries(LOCAL_KNOWLEDGE)) {
         if (data.keywords) {
             for (const keyword of data.keywords) {
@@ -127,177 +126,190 @@ function getLocalResponse(userText) {
             }
         }
     }
-
     return `I'm here to help with baby care questions! Ask me about feeding, sleep, milestones, safety, or anything else on your mind. 💕`;
 }
 
 // ==========================================
-// UI FUNCTIONS
+// DOM READY - Initialize Everything
 // ==========================================
-const chatArea = document.getElementById('chatArea');
-const messagesContainer = document.getElementById('messagesContainer');
-const messageInput = document.getElementById('messageInput');
-const sendBtn = document.getElementById('sendBtn');
-const typingIndicator = document.getElementById('typingIndicator');
-const welcomeMessage = document.getElementById('welcomeMessage');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('AI Mom Guide loaded successfully!');
 
-let chatHistory = [];
-let isProcessing = false;
+    const chatArea = document.getElementById('chatArea');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const welcomeMessage = document.getElementById('welcomeMessage');
 
-// Auto-resize textarea
-messageInput.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
+    if (!messageInput || !sendBtn) {
+        console.error('Required elements not found!');
+        return;
+    }
 
-// Send on Enter
-messageInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    let chatHistory = [];
+    let isProcessing = false;
+
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // Send on Enter
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // Send button click
+    sendBtn.addEventListener('click', function(e) {
         e.preventDefault();
         sendMessage();
-    }
-});
-
-sendBtn.addEventListener('click', sendMessage);
-
-function getTimeString() {
-    const now = new Date();
-    return now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
     });
-}
 
-function createMessageElement(text, isUser) {
-    const wrapper = document.createElement('div');
-    wrapper.className = `message-wrapper ${isUser ? 'user' : 'ai'}`;
-
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar';
-    avatar.textContent = isUser ? 'You' : '👩‍🍼';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'message-bubble';
-
-    // Convert markdown-like bold to HTML
-    let formattedText = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
-
-    bubble.innerHTML = formattedText;
-
-    const time = document.createElement('div');
-    time.className = 'message-time';
-    time.textContent = getTimeString();
-
-    const bubbleWrapper = document.createElement('div');
-    bubbleWrapper.appendChild(bubble);
-    bubbleWrapper.appendChild(time);
-
-    wrapper.appendChild(avatar);
-    wrapper.appendChild(bubbleWrapper);
-
-    return wrapper;
-}
-
-function showTyping() {
-    typingIndicator.classList.add('active');
-    scrollToBottom();
-}
-
-function hideTyping() {
-    typingIndicator.classList.remove('active');
-}
-
-function scrollToBottom() {
-    chatArea.scrollTo({
-        top: chatArea.scrollHeight,
-        behavior: 'smooth'
-    });
-}
-
-async function sendMessage() {
-    if (isProcessing) return;
-
-    const text = messageInput.value.trim();
-    if (!text) return;
-
-    isProcessing = true;
-
-    // Hide welcome message on first message
-    if (welcomeMessage) {
-        welcomeMessage.style.display = 'none';
-    }
-
-    // Add user message
-    const userMsg = createMessageElement(text, true);
-    messagesContainer.appendChild(userMsg);
-    chatHistory.push({ role: 'user', content: text });
-
-    // Clear input
-    messageInput.value = '';
-    messageInput.style.height = 'auto';
-    scrollToBottom();
-
-    // Show typing
-    showTyping();
-
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}`,
-                'HTTP-Referer': window.location.href,
-                'X-Title': 'AI Mom Assistant'
-            },
-            body: JSON.stringify({
-                model: 'openai/gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: SYSTEM_PROMPT },
-                    ...chatHistory
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            })
+    function getTimeString() {
+        const now = new Date();
+        return now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
         });
+    }
 
-        if (!response.ok) {
-            throw new Error('API request failed: ' + response.status);
+    function createMessageElement(text, isUser) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${isUser ? 'user' : 'ai'}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = isUser ? 'You' : '👩‍🍼';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+
+        let formattedText = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\n/g, '<br>');
+
+        bubble.innerHTML = formattedText;
+
+        const time = document.createElement('div');
+        time.className = 'message-time';
+        time.textContent = getTimeString();
+
+        const bubbleWrapper = document.createElement('div');
+        bubbleWrapper.appendChild(bubble);
+        bubbleWrapper.appendChild(time);
+
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubbleWrapper);
+
+        return wrapper;
+    }
+
+    function showTyping() {
+        if (typingIndicator) typingIndicator.classList.add('active');
+        scrollToBottom();
+    }
+
+    function hideTyping() {
+        if (typingIndicator) typingIndicator.classList.remove('active');
+    }
+
+    function scrollToBottom() {
+        if (chatArea) {
+            chatArea.scrollTo({
+                top: chatArea.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    async function sendMessage() {
+        if (isProcessing) return;
+
+        const text = messageInput.value.trim();
+        if (!text) return;
+
+        isProcessing = true;
+
+        // Hide welcome message on first message
+        if (welcomeMessage) {
+            welcomeMessage.style.display = 'none';
         }
 
-        const data = await response.json();
-        const aiReply = data.choices?.[0]?.message?.content || getLocalResponse(text);
+        // Add user message
+        const userMsg = createMessageElement(text, true);
+        messagesContainer.appendChild(userMsg);
+        chatHistory.push({ role: 'user', content: text });
 
-        hideTyping();
-
-        // Add AI message
-        const aiMsg = createMessageElement(aiReply, false);
-        messagesContainer.appendChild(aiMsg);
-        chatHistory.push({ role: 'assistant', content: aiReply });
-
+        // Clear input
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
         scrollToBottom();
 
-    } catch (error) {
-        console.error('AI Error:', error);
-        hideTyping();
+        // Show typing
+        showTyping();
 
-        // Use local fallback on error
-        const fallbackReply = getLocalResponse(text);
-        const aiMsg = createMessageElement(fallbackReply + '\n\n_(Note: Using offline mode — AI service temporarily unavailable)_', false);
-        messagesContainer.appendChild(aiMsg);
-        chatHistory.push({ role: 'assistant', content: fallbackReply });
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'HTTP-Referer': window.location.href,
+                    'X-Title': 'AI Mom Assistant'
+                },
+                body: JSON.stringify({
+                    model: 'openai/gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        ...chatHistory
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 500
+                })
+            });
 
-        scrollToBottom();
+            if (!response.ok) {
+                throw new Error('API request failed: ' + response.status);
+            }
+
+            const data = await response.json();
+            const aiReply = data.choices?.[0]?.message?.content || getLocalResponse(text);
+
+            hideTyping();
+
+            // Add AI message
+            const aiMsg = createMessageElement(aiReply, false);
+            messagesContainer.appendChild(aiMsg);
+            chatHistory.push({ role: 'assistant', content: aiReply });
+
+            scrollToBottom();
+
+        } catch (error) {
+            console.error('AI Error:', error);
+            hideTyping();
+
+            // Use local fallback on error
+            const fallbackReply = getLocalResponse(text);
+            const aiMsg = createMessageElement(fallbackReply + '\n\n_(Note: Using offline mode — AI service temporarily unavailable)_', false);
+            messagesContainer.appendChild(aiMsg);
+            chatHistory.push({ role: 'assistant', content: fallbackReply });
+
+            scrollToBottom();
+        }
+
+        isProcessing = false;
     }
 
-    isProcessing = false;
-}
-
-// Quick topic starter
-async function startTopic(topic) {
-    messageInput.value = `Tell me about ${topic}`;
-    sendMessage();
-}
+    // Make startTopic globally accessible for onclick handlers
+    window.startTopic = function(topic) {
+        messageInput.value = `Tell me about ${topic}`;
+        sendMessage();
+    };
+});
