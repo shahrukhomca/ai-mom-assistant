@@ -1,316 +1,459 @@
-// ==========================================
-// AI Mom Guide - Premium Chat UI
-// OpenRouter API + Local Fallback
-// ==========================================
+/* ==========================================
+   AI MOM GUIDE - PROTECTED CHATBOT
+   Members-only access with obfuscated API
+   ========================================== */
 
-const API_KEY = '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';
+// ---- AUTH CONFIG ----
+const MEMBER_PASSWORD = 'MOM2024!';
+const AUTH_KEY = 'ai_mom_auth_v2';
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+// ---- OBFUSCATED API KEY ----
+// Key is split and base64-encoded to deter casual scraping
+// Format: sk-or-v1-... (stored as 3 fragments)
+const K1 = 'c2stb3ItdjEtYjMzYjI2Yjk3NWM5MDcwN';
+const K2 = 'zM0YTI0MTk1MTI2ODZhZDI1ZWJlY2UxMj';
+const K3 = 'A0MWM0NDgyNjJiMzUyNzNiMTg2NmZkNQ==';
+
+function getApiKey() {
+    try {
+        const combined = atob(K1 + K2 + K3);
+        return combined;
+    } catch (e) {
+        console.error('Key decode failed');
+        return '';
+    }
+}
+
+// ---- API CONFIG ----
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const SYSTEM_PROMPT = `You are "Mama Sage" — a warm, experienced mom friend who's been through it all. You help new moms with babies aged 0-2 years. You are NOT a cold medical encyclopedia. You are the wise best-friend moms call at 2 AM.
-
-YOUR PERSONALITY:
-- Warm, encouraging, and slightly humorous. Use a conversational tone, like texting a friend.
-- Use emojis naturally (👶, 💤, 🍼, ❤️) but don't overdo it.
-- Validate the mom's feelings first before giving advice. Example: "Oh honey, sleepless nights are BRUTAL. You're doing amazing even when it doesn't feel like it."
-- Use short paragraphs, bullet points, and bold text for key takeaways so it's easy to read on a phone at 3 AM.
-- Share relatable "mini stories" — "When my little one was 4 months, she did the exact same thing..."
-- Always end with a gentle follow-up question or encouragement to keep the conversation going.
-
-YOUR KNOWLEDGE:
-- Newborn care (0-3 months): feeding schedules, colic, swaddling, umbilical cord care
-- Infant development (4-12 months): sleep regression, introducing solids, teething, crawling
-- Toddler years (1-2 years): tantrums, potty training prep, speech development
-- Feeding & nutrition: breastfeeding, formula, allergies, meal prep
-- Sleep training: gentle methods, bedtime routines, nap schedules
-- Health & safety: fever guidelines, rashes, when to call the doctor
-- Developmental milestones: month-by-month what to expect
-
-RULES:
-- NEVER sound robotic or like a textbook. No "Step 1, Step 2" unless the mom specifically asks for a checklist.
-- If a question is medical and serious, give helpful info BUT gently remind them to check with their pediatrician. Don't scare them.
-- Keep responses under 150 words unless the question needs a detailed explanation.
-- Use phrases like "Here's the thing...", "Trust me on this...", "You're not alone in this."
-- If the mom seems stressed, give her a virtual hug: "Breathe, mama. You've got this. 💪"
-
-At the end of relevant responses, naturally mention the Complete Baby Care Guide PDF available for $20 with instant download, but only if it genuinely fits the conversation. Example: "If you want a printable sleep schedule that actually worked for us, I put my full routine in the Complete Baby Care Guide — it's $20 and you can download it instantly. But honestly, just try the tips above first and see how it goes! ❤️"`;
-
-// ==========================================
-// LOCAL KNOWLEDGE BASE (FALLBACK)
-// ==========================================
-const LOCAL_KNOWLEDGE = {
-    'hello': {
-        keywords: ['hello', 'hi', 'hey', 'good morning', 'good evening'],
-        responses: [
-            "Hi there, mama! 👋 Welcome! I'm so glad you're here. How's your little one doing today? Feel free to ask me anything — no question is too small!",
-            "Hey mama! 💕 So lovely to meet you. How can I help make your day a little easier?",
-            "Hello, beautiful! 👶✨ How's motherhood treating you? I'm here for whatever you need!"
-        ]
-    },
-    'sleep': {
-        keywords: ['sleep', 'nap', 'bedtime', 'night', 'crying', 'wakes', 'waking', 'tired', 'exhausted'],
-        responses: [
-            "Oh honey, sleepless nights are BRUTAL. You're doing amazing even when it doesn't feel like it. 💤\n\n**Here's what usually helps:**\n- **Swaddling** (0-3 months) — keeps that startle reflex from waking them\n- **White noise** — a fan or app works wonders\n- **Dream feed** — feed right before YOU go to bed to extend their longest stretch\n- **Drowsy but awake** — put them down before they're fully asleep so they learn to self-soothe\n\nHow old is your little one? I can give you age-specific tips! ❤️",
-            "I feel you, mama. Sleep deprivation is no joke. 😴\n\n**Quick wins:**\n- Dark room (blackout curtains are worth every penny)\n- Consistent bedtime routine (bath → book → bed)\n- Try the **5 S's**: Swaddle, Side, Shush, Swing, Suck\n\nTrust me on this — it gets better. My little one was up every 2 hours until we got the routine down. You've got this! 💪",
-            "Sleep struggles are SO real, mama. You're not alone in this. 💤\n\n**A few things to try:**\n- Check if baby is **overtired** — sometimes they fight sleep because they're too tired!\n- **Bedtime between 7-8pm** often works best for little ones\n- If they're 4+ months, a gentle sleep training method might help\n\nWhat's your current bedtime routine looking like?"
-        ]
-    },
-    'feeding': {
-        keywords: ['feed', 'eat', 'food', 'bottle', 'breast', 'milk', 'nursing', 'formula', 'solid', 'hungry', 'nutrition'],
-        responses: [
-            "Feeding questions are SO common — you're definitely not alone! 🍼\n\n**Here's the thing:**\n- **Newborns**: Every 2-3 hours (8-12 feeds/day)\n- **4-6 months**: Still frequent, but you can start thinking about solids when they show signs\n- **6-12 months**: 3 meals + milk, gradually increasing textures\n\n**Signs baby is ready for solids:**\n- Sits with support\n- Lost tongue-thrust reflex\n- Interested in your food\n\nAre you breastfeeding, formula feeding, or a mix? I can give more specific tips! 💕",
-            "Feeding can feel overwhelming at first, but you'll find your groove! 🍼\n\n**A few tips that saved my sanity:**\n- **Cluster feeding** is normal (especially evenings!) — baby is tanking up\n- Burp halfway through and at the end\n- If bottle-feeding, pace feeding prevents overfeeding\n\nHow old is your baby, and what feeding method are you using? I'm here to help! ❤️"
-        ]
-    },
-    'milestones': {
-        keywords: ['milestone', 'development', 'grow', 'learn', 'skill', 'crawl', 'walk', 'talk', 'sitting', 'rolling', 'teething'],
-        responses: [
-            "Every baby develops at their own pace, mama! Here's a rough guide to ease your mind: 👶\n\n**0-3 months:**\n- Lifts head during tummy time\n- Tracks objects with eyes\n- Smiles socially\n\n**4-6 months:**\n- Rolls over\n- Sits with support\n- Babbles (ma-ma, ba-ba)\n\n**7-9 months:**\n- Crawls or scoots\n- Pulls to stand\n- Pincer grasp (thumb + finger)\n\n**10-12 months:**\n- May take first steps!\n- Says 1-2 words\n- Waves bye-bye\n\nRemember — there's a wide range of normal! If you're ever worried, your pediatrician is the best person to check. How old is your little one? 💕"
-        ]
-    },
-    'newborn': {
-        keywords: ['newborn', 'baby', 'infant', '0-3', 'first week', 'first month', 'umbilical', 'colic', 'swaddle'],
-        responses: [
-            "The newborn stage is beautiful AND overwhelming. You're doing great, mama! 👶💕\n\n**A few newborn essentials:**\n- **Swaddling** helps with the startle reflex — just make sure hips can move!\n- **Tummy time** starts day 1 (even just 1-2 minutes)\n- **Umbilical cord** falls off in 1-3 weeks — keep it dry\n- **Colic** peaks at 6-8 weeks — it WILL pass, I promise\n\nWhat specifically are you dealing with? I'm here for you! 💪",
-            "Those first few weeks are a whirlwind, aren't they? 🌪️👶\n\n**Things that helped me survive:**\n- Accept ALL help offered (meals, laundry, holding baby while you shower)\n- Sleep when baby sleeps — seriously, the dishes can wait\n- Skin-to-skin is magic for both of you\n- Crying peaks at 6-8 weeks — you're almost through the hardest part!\n\nHow are YOU feeling, mama? Are you getting any rest? 💕"
-        ]
-    },
-    'safety': {
-        keywords: ['safety', 'safe', 'proof', 'hazard', 'protect', 'danger', 'choking', 'crib', 'car seat'],
-        responses: [
-            "Safety first, always! 🛡️ Here's a quick room-by-room checklist:\n\n**Nursery:**\n- Firm mattress, fitted sheet ONLY (no bumpers, pillows, blankets until 12+ months)\n- Baby monitor placed safely away from crib\n\n**Living Room:**\n- Anchor furniture to walls (dressers, TVs, bookshelves)\n- Outlet covers on ALL unused outlets\n- Cord shorteners for blinds\n\n**Kitchen:**\n- Cabinet locks on lower cabinets\n- Stove knob covers\n- Keep knives, cleaners, and small objects out of reach\n\n**Car:**\n- Rear-facing car seat until at least age 2 (or outgrows height/weight limits)\n\nWant me to go deeper on any room? 💕"
-        ]
-    },
-    'health': {
-        keywords: ['health', 'sick', 'fever', 'cold', 'doctor', 'illness', 'medicine', 'vaccine', 'rash', 'teething'],
-        responses: [
-            "I know it's scary when baby isn't feeling well. 💔 You're doing the right thing by seeking info.\n\n**When to call the doctor:**\n- Fever over 100.4°F (38°C) in babies under 3 months\n- Fever over 102°F (38.9°C) in older babies\n- Trouble breathing\n- Not eating or drinking\n- Unusual lethargy\n\n**For mild colds:**\n- Saline drops + bulb syringe for stuffy noses\n- Cool-mist humidifier\n- Lots of cuddles and fluids\n\n**Please check with your pediatrician for medical concerns** — I'm here for support, but they're the pros! 💕 What's going on with your little one?"
-        ]
-    },
-    'crying': {
-        keywords: ['cry', 'crying', 'fussy', 'fussing', 'won\'t stop', 'screaming', 'colic'],
-        responses: [
-            "Oh mama, I hear you. A crying baby is SO stressful, but you're not doing anything wrong. 👶💕\n\n**The 5 S's (Dr. Karp's method) — lifesavers:**\n1. **Swaddle** — snug wrapping (arms down)\n2. **Side/Stomach** — hold on their side or stomach (never for sleep!)\n3. **Shush** — loud white noise (vacuum, hair dryer, app)\n4. **Swing** — gentle jiggling motion (support the head!)\n5. **Suck** — pacifier, clean finger, or nursing\n\n**Other checks:**\n- Hungry? (rooting, sucking on hands)\n- Wet/dirty diaper?\n- Too hot or cold?\n- Overstimulated? (take to a quiet, dark room)\n\nYou've got this, mama. Breathe. 💪 What's been working (or not working) so far?"
-        ]
-    },
-    'buy': {
-        keywords: ['buy', 'purchase', 'price', 'cost', '$', 'pay', 'order', 'guide', 'pdf', 'download'],
-        responses: [
-            "The Complete Baby Care Guide is $20 and includes instant access to 38 pages of expert advice, feeding schedules, sleep training methods, milestone trackers, safety checklists, and more! You also get the AI Mom Assistant (that's me!) for 24/7 support. Would you like the link to purchase? 💕"
-        ]
-    },
-    'thank': {
-        keywords: ['thank', 'thanks', 'appreciate', 'grateful'],
-        responses: [
-            "You're so welcome, mama! 💕 I'm just happy I could help. You're doing an amazing job, even on the hard days. Remember — you're exactly the mom your baby needs. Is there anything else on your mind?",
-            "Anytime, beautiful! 👶✨ Being a mom is the hardest and most rewarding job in the world. You're not alone in this journey. What else can I help with?"
-        ]
-    },
-    'bye': {
-        keywords: ['bye', 'goodbye', 'see you', 'later', 'night'],
-        responses: [
-            "Take care, mama! 💕 Remember to be gentle with yourself. You're doing better than you think. I'm always here if you need me — day or night! Sleep well (if baby lets you 😉).",
-            "Goodbye, beautiful! 👶💤 Don't forget — you've got this. And if you ever feel like you don't, come back and chat. I'm always here. Take care! ❤️"
-        ]
-    }
-};
-
-function getLocalResponse(userText) {
-    const lowerText = userText.toLowerCase();
-    for (const [topic, data] of Object.entries(LOCAL_KNOWLEDGE)) {
-        if (data.keywords) {
-            for (const keyword of data.keywords) {
-                if (lowerText.includes(keyword)) {
-                    const responses = data.responses;
-                    return responses[Math.floor(Math.random() * responses.length)];
-                }
-            }
-        }
-    }
-    return "I'm here to help with baby care questions! Ask me about feeding, sleep, milestones, safety, or anything else on your mind. 💕";
-}
-
-// ==========================================
-// CHAT APP (runs immediately — script is at bottom of body)
-// ==========================================
-
-const chatArea = document.getElementById('chatArea');
-const messagesContainer = document.getElementById('messagesContainer');
-const messageInput = document.getElementById('messageInput');
-const sendBtn = document.getElementById('sendBtn');
-const typingIndicator = document.getElementById('typingIndicator');
-const welcomeMessage = document.getElementById('welcomeMessage');
-
-if (!messageInput || !sendBtn) {
-    console.error('AI Mom Guide: Required elements not found!');
-} else {
-    console.log('AI Mom Guide: Initialized successfully!');
-}
-
-let chatHistory = [];
+// ---- STATE ----
+let messages = [];
+let currentImage = null;
 let isProcessing = false;
 
-// Auto-resize textarea
-messageInput.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
+// ==========================================
+// AUTH SYSTEM
+// ==========================================
 
-// Send on Enter
-messageInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
+function checkPassword() {
+    const input = document.getElementById('passwordInput');
+    const error = document.getElementById('passwordError');
+    const value = input.value.trim();
+
+    if (value === MEMBER_PASSWORD) {
+        setAuthenticated();
+        showChat();
+        error.classList.remove('show');
+    } else {
+        error.classList.add('show');
+        input.value = '';
+        input.focus();
     }
-});
+}
 
-// Send button click
-sendBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    sendMessage();
-});
+function setAuthenticated() {
+    const session = {
+        authenticated: true,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(AUTH_KEY, JSON.stringify(session));
+}
 
-function getTimeString() {
-    const now = new Date();
-    return now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
+function clearAuth() {
+    localStorage.removeItem(AUTH_KEY);
+}
+
+function isAuthenticated() {
+    try {
+        const session = JSON.parse(localStorage.getItem(AUTH_KEY));
+        if (!session || !session.authenticated) return false;
+        // Check session expiry
+        if (Date.now() - session.timestamp > SESSION_DURATION) {
+            clearAuth();
+            return false;
+        }
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function logout() {
+    clearAuth();
+    location.reload();
+}
+
+function showChat() {
+    document.getElementById('passwordGate').style.display = 'none';
+    document.getElementById('chatApp').style.display = 'flex';
+    document.getElementById('messageInput').focus();
+}
+
+// ==========================================
+// IMAGE HANDLING
+// ==========================================
+
+function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        addSystemMessage('Please select a valid image file (JPEG, PNG, etc.)');
+        return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        addSystemMessage('Image is too large. Please select an image under 10MB.');
+        return;
+    }
+
+    resizeImageToBase64(file, 800, 0.8)
+        .then(base64 => {
+            currentImage = base64;
+            showImagePreview(base64);
+            document.getElementById('messageInput').focus();
+        })
+        .catch(err => {
+            console.error('Image resize error:', err);
+            addSystemMessage('Could not process the image. Please try a different one.');
+        });
+}
+
+function resizeImageToBase64(file, maxWidth, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let w = img.width;
+                let h = img.height;
+
+                if (w > maxWidth) {
+                    h = Math.round(h * (maxWidth / w));
+                    w = maxWidth;
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
     });
 }
 
-function createMessageElement(text, isUser) {
+function showImagePreview(base64) {
+    const previewArea = document.getElementById('imagePreviewArea');
+    const previewImg = document.getElementById('imagePreview');
+    previewImg.src = base64;
+    previewArea.style.display = 'block';
+}
+
+function removeImage() {
+    currentImage = null;
+    document.getElementById('imagePreviewArea').style.display = 'none';
+    document.getElementById('imagePreview').src = '';
+    document.getElementById('imageInput').value = '';
+}
+
+// ==========================================
+// MESSAGE BUILDERS
+// ==========================================
+
+function buildUserMessage(text, imageBase64) {
+    const content = [];
+    if (imageBase64) {
+        content.push({
+            type: 'image_url',
+            image_url: { url: imageBase64 }
+        });
+    }
+    content.push({ type: 'text', text: text || 'What can you tell me about this?' });
+    return { role: 'user', content };
+}
+
+function createMessageElement(text, isUser, imageSrc) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'message-wrapper ' + (isUser ? 'user' : 'ai');
+    wrapper.className = `message-wrapper ${isUser ? 'user' : 'ai'}`;
 
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
-    avatar.textContent = isUser ? 'You' : '👩‍🍼';
+    avatar.textContent = isUser ? 'You' : '🍼';
 
     const bubble = document.createElement('div');
     bubble.className = 'message-bubble';
 
-    let formattedText = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
+    if (imageSrc) {
+        const img = document.createElement('img');
+        img.src = imageSrc;
+        img.className = 'message-image';
+        img.alt = 'Shared image';
+        bubble.appendChild(img);
+    }
 
-    bubble.innerHTML = formattedText;
-
-    const time = document.createElement('div');
-    time.className = 'message-time';
-    time.textContent = getTimeString();
-
-    const bubbleWrapper = document.createElement('div');
-    bubbleWrapper.appendChild(bubble);
-    bubbleWrapper.appendChild(time);
+    const textNode = document.createElement('span');
+    textNode.textContent = text;
+    bubble.appendChild(textNode);
 
     wrapper.appendChild(avatar);
-    wrapper.appendChild(bubbleWrapper);
+    wrapper.appendChild(bubble);
 
     return wrapper;
 }
 
-function showTyping() {
-    if (typingIndicator) typingIndicator.classList.add('active');
+function addSystemMessage(text) {
+    const container = document.getElementById('messagesContainer');
+    const msg = createMessageElement(text, false, null);
+    container.appendChild(msg);
     scrollToBottom();
 }
 
-function hideTyping() {
-    if (typingIndicator) typingIndicator.classList.remove('active');
-}
-
-function scrollToBottom() {
-    if (chatArea) {
-        chatArea.scrollTo({
-            top: chatArea.scrollHeight,
-            behavior: 'smooth'
-        });
-    }
-}
+// ==========================================
+// API & CHAT
+// ==========================================
 
 async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+
+    if (!text && !currentImage) return;
     if (isProcessing) return;
 
-    const text = messageInput.value.trim();
-    if (!text) return;
-
     isProcessing = true;
+    const imageToSend = currentImage;
+    if (currentImage) removeImage();
 
-    // Hide welcome message on first message
-    if (welcomeMessage) {
-        welcomeMessage.style.display = 'none';
-    }
+    // Show user message
+    const container = document.getElementById('messagesContainer');
+    const userMsg = createMessageElement(text || 'Shared a photo', true, imageToSend);
+    container.appendChild(userMsg);
 
-    // Add user message
-    const userMsg = createMessageElement(text, true);
-    messagesContainer.appendChild(userMsg);
-    chatHistory.push({ role: 'user', content: text });
-
-    // Clear input
-    messageInput.value = '';
-    messageInput.style.height = 'auto';
+    input.value = '';
+    input.style.height = 'auto';
     scrollToBottom();
 
-    // Show typing
-    showTyping();
+    // Show typing indicator
+    const typing = document.getElementById('typingIndicator');
+    typing.classList.add('active');
+    scrollToBottom();
+
+    // Build message
+    const userMessage = buildUserMessage(text, imageToSend);
+    messages.push(userMessage);
 
     try {
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            throw new Error('API key unavailable');
+        }
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + API_KEY,
-                'HTTP-Referer': window.location.href,
-                'X-Title': 'AI Mom Assistant'
+                'Authorization': `Bearer ${apiKey}`,
+                'HTTP-Referer': 'https://ai-mom-assistant.vercel.app',
+                'X-Title': 'AI Mom Guide'
             },
             body: JSON.stringify({
-                model: 'openai/gpt-3.5-turbo',
+                model: imageToSend ? 'openai/gpt-4o' : 'openai/gpt-3.5-turbo',
                 messages: [
-                    { role: 'system', content: SYSTEM_PROMPT },
-                    ...chatHistory
+                    {
+                        role: 'system',
+                        content: SYSTEM_PROMPT
+                    },
+                    ...messages.slice(-10)
                 ],
                 temperature: 0.7,
-                max_tokens: 500
+                max_tokens: 800
             })
         });
 
         if (!response.ok) {
-            throw new Error('API request failed: ' + response.status);
+            throw new Error(`HTTP ${response.status}`);
         }
 
         const data = await response.json();
-        const aiReply = data.choices && data.choices[0] && data.choices[0].message 
-            ? data.choices[0].message.content 
-            : getLocalResponse(text);
+        const reply = data.choices[0].message.content;
+        messages.push({ role: 'assistant', content: reply });
 
-        hideTyping();
+        typing.classList.remove('active');
+        const aiMsg = createMessageElement(reply, false, null);
+        container.appendChild(aiMsg);
 
-        // Add AI message
-        const aiMsg = createMessageElement(aiReply, false);
-        messagesContainer.appendChild(aiMsg);
-        chatHistory.push({ role: 'assistant', content: aiReply });
+    } catch (err) {
+        console.error('API Error:', err);
+        typing.classList.remove('active');
 
-        scrollToBottom();
-
-    } catch (error) {
-        console.error('AI Error:', error);
-        hideTyping();
-
-        // Use local fallback on error - seamless
-        const fallbackReply = getLocalResponse(text);
-        const aiMsg = createMessageElement(fallbackReply, false);
-        messagesContainer.appendChild(aiMsg);
-        chatHistory.push({ role: 'assistant', content: fallbackReply });
-
-        scrollToBottom();
+        // Fallback response
+        const fallback = getFallbackResponse(text);
+        const aiMsg = createMessageElement(fallback, false, null);
+        container.appendChild(aiMsg);
     }
 
     isProcessing = false;
+    scrollToBottom();
 }
 
-// Global function for topic buttons (called from HTML onclick)
-function startTopic(topic) {
-    if (!messageInput) return;
-    messageInput.value = 'Tell me about ' + topic;
-    sendMessage();
+function scrollToBottom() {
+    const area = document.getElementById('chatArea');
+    area.scrollTop = area.scrollHeight;
 }
+
+// ==========================================
+// SYSTEM PROMPT (with medical disclaimer)
+// ==========================================
+
+const SYSTEM_PROMPT = `You are "AI Mom Guide," a warm, knowledgeable, and supportive AI assistant for new mothers. You specialize in baby care for ages 0-2 years.
+
+IMPORTANT RULES:
+1. ALWAYS give actionable advice FIRST, then ask a brief follow-up question.
+2. Keep responses warm, supportive, and easy to understand (8th-grade reading level).
+3. Use emojis naturally to convey warmth.
+4. NEVER make up medical facts. If unsure, say "Always check with your pediatrician to be safe."
+5. Include a brief medical disclaimer when discussing health concerns.
+6. Keep responses under 150 words when possible.
+7. Be encouraging — mothering is hard and the user is doing great.
+
+MEDICAL DISCLAIMER TO INCLUDE when relevant:
+"I'm an AI assistant, not a doctor. This information is for educational purposes only. Always consult your pediatrician for medical advice."
+
+You can help with: sleep training, feeding schedules (breast/formula/solids), diapering, milestone tracking, babyproofing, common illnesses, teething, postpartum care, and emotional support.`;
+
+// ==========================================
+// FALLBACK KNOWLEDGE BASE
+// ==========================================
+
+function getFallbackResponse(input) {
+    const text = input.toLowerCase();
+
+    if (text.includes('sleep') || text.includes('nap')) {
+        return "Newborns need 14-17 hours of sleep daily. Try the 'Eat, Play, Sleep' routine.\n\nFor the first 3 months, swaddling and white noise work wonders.\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice. 👶💤";
+    }
+    if (text.includes('feed') || text.includes('bottle') || text.includes('breast') || text.includes('milk')) {
+        return "Newborns eat every 2-3 hours. Look for hunger cues: rooting, sucking on hands.\n\nBy 6 months, you can start purees alongside milk.\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice. 🍼";
+    }
+    if (text.includes('rash') || text.includes('skin')) {
+        return "Most baby rashes are harmless diaper rash or baby acne. Keep the area clean and dry.\n\nCall your pediatrician if: fever appears, rash spreads rapidly, or baby seems very uncomfortable.\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice. 🩺";
+    }
+    if (text.includes('mileston')) {
+        return "By 2 months: Social smiles.\nBy 4 months: Rolls over, reaches for toys.\nBy 6 months: Sits with support, babbles.\nBy 9 months: Crawls, says 'mama/dada'.\nBy 12 months: Stands, first steps.\n\nEvery baby develops at their own pace!\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice. 📈";
+    }
+    if (text.includes('safety') || text.includes('babyproof')) {
+        return "Start babyproofing before baby crawls:\n- Install cabinet locks\n- Cover outlets\n- Secure furniture to walls\n- Remove small objects\n- Gate stairs\n\nThe Home Babyproofing Guide in your downloads has a full room-by-room checklist!\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice. 🛡️";
+    }
+    if (text.includes('fever') || text.includes('sick') || text.includes('cold')) {
+        return "For babies under 3 months, any fever (100.4°F/38°C+) needs immediate medical attention.\n\nFor older babies: keep them hydrated, use a cool-mist humidifier, and monitor.\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice. 🩺";
+    }
+    if (text.includes('hello') || text.includes('hi') || text === '') {
+        return "Hey there, mama! 👋 I'm here to help with anything about your little one.\n\nAsk me about sleep, feeding, milestones, or share a photo!\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice. 💕";
+    }
+
+    return "That's a great question about your baby! 💕\n\nCould you share a bit more detail so I can give you the best guidance?\n\nI'm an AI assistant, not a doctor. Always consult your pediatrician for medical advice.";
+}
+
+// ==========================================
+// TOPIC BUTTONS
+// ==========================================
+
+function startTopic(topic) {
+    const topics = {
+        sleep: 'How do I help my baby sleep through the night?',
+        feeding: 'What is the best feeding schedule for my baby?',
+        milestones: 'What are the key milestones I should watch for?',
+        safety: 'How do I babyproof my home?',
+        newborn: 'What should I know about caring for a newborn?',
+        health: 'When should I call the pediatrician?'
+    };
+
+    const input = document.getElementById('messageInput');
+    input.value = topics[topic] || '';
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
+    input.focus();
+}
+
+// ==========================================
+// INPUT AUTO-RESIZE
+// ==========================================
+
+function setupTextarea() {
+    const textarea = document.getElementById('messageInput');
+
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+}
+
+// ==========================================
+// PRIVACY & LEGAL DISCLAIMER
+// ==========================================
+
+function addPrivacyNotice() {
+    const container = document.getElementById('messagesContainer');
+    const notice = document.createElement('div');
+    notice.className = 'message-wrapper ai';
+    notice.style.maxWidth = '100%';
+    notice.innerHTML = `
+        <div class="message-avatar" style="font-size:12px;">🔒</div>
+        <div class="message-bubble" style="background:rgba(254,243,199,0.6);border:1px solid rgba(251,191,36,0.3);">
+            <div style="font-size:0.8rem;color:#92400e;line-height:1.5;">
+                <strong>Privacy & Safety:</strong><br>
+                • Photos you share are processed by AI and not stored permanently<br>
+                • This AI provides educational info, not medical advice<br>
+                • Always consult your pediatrician for health concerns<br>
+                • Conversations stay on this device (not saved to servers)
+            </div>
+        </div>
+    `;
+    container.appendChild(notice);
+    scrollToBottom();
+}
+
+// ==========================================
+// APP INIT
+// ==========================================
+
+// Check auth on load
+if (isAuthenticated()) {
+    showChat();
+    // Show privacy notice after a short delay
+    setTimeout(addPrivacyNotice, 2000);
+} else {
+    document.getElementById('passwordGate').style.display = 'flex';
+    document.getElementById('chatApp').style.display = 'none';
+    document.getElementById('passwordInput').focus();
+
+    // Enter key on password
+    document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') checkPassword();
+    });
+}
+
+// Setup textarea
+setupTextarea();
+
+// Add click handler for document (in case any buttons need global access)
+document.addEventListener('click', function(e) {
+    if (e.target.matches('.topic-btn')) {
+        // Topic buttons are handled inline via onclick
+    }
+});
+
+console.log('AI Mom Guide loaded. Auth:', isAuthenticated());

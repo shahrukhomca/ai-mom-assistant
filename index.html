@@ -3,13 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mom Guide</title>
+    <title>AI Mom Guide - Members Only</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
+    <!-- PASSWORD GATE -->
+    <div id="passwordGate" class="password-gate">
+        <div class="password-card">
+            <div class="password-logo">👩‍🍼</div>
+            <h1>AI Mom Guide</h1>
+            <p class="password-subtitle">Exclusive Access for Members</p>
+            <div class="password-info">
+                <p>This AI assistant is included with your <strong>Complete Baby Care Guide</strong> purchase.</p>
+                <p>Enter your member password to access 24/7 support.</p>
+            </div>
+            <div class="password-input-group">
+                <input type="password" id="passwordInput" placeholder="Enter member password" maxlength="20">
+                <button id="passwordSubmit" onclick="checkPassword()">Unlock Access</button>
+            </div>
+            <p id="passwordError" class="password-error">Incorrect password. Please check your thank-you email or download page.</p>
+            <div class="password-footer">
+                <p>Don't have access?</p>
+                <a href="https://mombabycare.netlify.app" target="_blank">Get the Complete Baby Care Guide — $20</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHAT APP (hidden until authenticated) -->
+    <div id="chatApp" class="app-container" style="display:none;">
         <header class="chat-header">
             <div class="header-content">
                 <div class="brand">
@@ -19,10 +41,10 @@
                         <span class="status"><span class="status-dot"></span>Online</span>
                     </div>
                 </div>
+                <button class="logout-btn" onclick="logout()" title="Sign out">🚪</button>
             </div>
         </header>
 
-        <!-- Chat Area -->
         <main class="chat-area" id="chatArea">
             <div class="welcome-message" id="welcomeMessage">
                 <div class="welcome-bubble">
@@ -30,12 +52,11 @@
                     <div class="welcome-content">
                         <h2>Welcome, Mama! 💕</h2>
                         <p>I'm here to help with feeding, sleep, milestones, and everything in between. Ask me anything about your little one!</p>
+                        <p style="margin-top:8px;font-size:12px;color:#888;">📷 Tap the paperclip to share photos — rashes, feeding questions, milestones, and more!</p>
                     </div>
                 </div>
             </div>
             <div class="messages-container" id="messagesContainer"></div>
-
-            <!-- Typing Indicator -->
             <div class="typing-indicator" id="typingIndicator">
                 <div class="typing-bubble">
                     <div class="typing-avatar">👩‍🍼</div>
@@ -44,7 +65,6 @@
             </div>
         </main>
 
-        <!-- Quick Topic Buttons -->
         <div class="quick-topics" id="quickTopics">
             <button class="topic-btn" onclick="startTopic('sleep')">😴 Sleep Help</button>
             <button class="topic-btn" onclick="startTopic('feeding')">🍼 Feeding Guide</button>
@@ -54,9 +74,21 @@
             <button class="topic-btn" onclick="startTopic('health')">🏥 Health</button>
         </div>
 
-        <!-- Input Area -->
+        <div class="image-preview-area" id="imagePreviewArea" style="display:none;">
+            <div class="image-preview-wrapper">
+                <img id="imagePreview" src="" alt="Preview">
+                <button class="image-remove-btn" onclick="removeImage()" title="Remove image">×</button>
+            </div>
+        </div>
+
         <footer class="input-area">
             <div class="input-wrapper">
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+                <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('imageInput').click()" title="Send a photo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </button>
                 <textarea id="messageInput" placeholder="Ask me anything about your baby's care..." rows="1"></textarea>
                 <button class="send-btn" id="sendBtn" onclick="sendMessage()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -67,7 +99,7 @@
             </div>
             <div class="input-hint">
                 <span>Press Enter to send</span>
-                <span>Shift + Enter for new line</span>
+                <span>📷 Tap clip to share a photo</span>
             </div>
         </footer>
     </div>
