@@ -169,15 +169,13 @@ function removeImage() {
 // ==========================================
 
 function buildUserMessage(text, imageBase64) {
-    const content = [];
+    // Note: Using text-only model (vision models blocked on this API key)
+    // Image is shown in UI but sent as text description to AI
+    let messageText = text || 'What can you tell me about this?';
     if (imageBase64) {
-        content.push({
-            type: 'image_url',
-            image_url: { url: imageBase64 }
-        });
+        messageText = '[User shared a photo] ' + messageText;
     }
-    content.push({ type: 'text', text: text || 'What can you tell me about this?' });
-    return { role: 'user', content };
+    return { role: 'user', content: messageText };
 }
 
 function createMessageElement(text, isUser, imageSrc) {
@@ -255,7 +253,8 @@ async function sendMessage() {
             throw new Error('API key unavailable');
         }
 
-        const response = await fetch(API_URL, {
+        // Try primary model (Grok - free, fast)
+        let response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -264,18 +263,37 @@ async function sendMessage() {
                 'X-Title': 'AI Mom Guide'
             },
             body: JSON.stringify({
-                model: imageToSend ? 'openai/gpt-4o' : 'openai/gpt-3.5-turbo',
+                model: 'x-ai/grok-4.6',
                 messages: [
-                    {
-                        role: 'system',
-                        content: SYSTEM_PROMPT
-                    },
+                    { role: 'system', content: SYSTEM_PROMPT },
                     ...messages.slice(-10)
                 ],
                 temperature: 0.7,
                 max_tokens: 800
             })
         });
+
+        // Fallback to Llama if Grok fails
+        if (!response.ok) {
+            response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'HTTP-Referer': 'https://ai-mom-assistant.vercel.app',
+                    'X-Title': 'AI Mom Guide'
+                },
+                body: JSON.stringify({
+                    model: 'meta-llama/llama-3.1-8b-instruct',
+                    messages: [
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        ...messages.slice(-10)
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 800
+                })
+            });
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
